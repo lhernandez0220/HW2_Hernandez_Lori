@@ -1,0 +1,191 @@
+---
+title: "STAA 566 HW2 - Dynamic Figure"
+author: "Lori Hernandez"
+output: html_document
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+---
+
+## **Discussion:**
+I decided to create my dynamic figure using data about tornadoes, obtained from the Storm Events Database that is created and maintained by the National Oceanic and Atmospheric Administration (NOAA).  My intention is to create my final Shiny dashboard project centered around this tornado data, and I thought it would be prudent to create this assignment as one of the elements I will include in that dashboard.  The Storm Events Database can be accessed here: [Storm Events Database](https://www.ncdc.noaa.gov/stormevents/ftp.jsp).  On the left side of the page, one can access the [NWS Documentation PDF] (https://www.nws.noaa.gov/directives/sym/pd01016005curr.pdf), which provides detailed information on how this data is compiled and in-depth guidance on the terminology used.  The actual CSV files I downloaded are [here](https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/) - note that I chose to limit my analysis to the past decade, so I utilized the "details" files for years 2012 - 2021.  To replicate this program, one would first need to download those 10 files and save them as variables year_xxxx, where xxxx is the 4 digit calendar year of the csv being loaded into R.  Another helpful PDF is available on this page, titled [Storm-Data-Bulk-csv-Format](https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/Storm-Data-Bulk-csv-Format.pdf) - this PDf provides quick explanations for the variables in the csv files.
+
+The Storm Events Database houses information on storm activity throughout the United States, going all the way back to 1950.  There is a lot of information available within these files, but I chose to narrow my focus to only analyze tornado activity, in order to avoid having too complicated or messy figures (and because I have always been fascinated by tornadoes).  My goal with this particular visualization is to showcase key details about the worst tornadoes that have occurred throughout the country in the past 10 years, where "worst" can be defined in 4 different ways according to the user's purpose: the most fatalities, the most injuries, the most property damage, or the most crop damage.  I wanted to try to do a figure completely different than what we were shown in the lectures, and in my research I found this really cool R package "collapsibleTree", which allows you to create an interactive dendogram.  I used this package to create my visualization, which required manipulating or rearranging the data to be in the right format to play nicely with this package.  For formatting, I adjusted the height and width of the output so that the nodes and connecting lines would look better, I increased the font size so that it was easier to read, and most importantly, I added node colorization so that each level of the dendogram would be a different color; I did this because it makes it a little clearer to the user the distinction between the levels of nodes, and also makes the visualization a bit more appealing.  I chose to use browns and brownish-green hues, as I feel like those colors correspond well to tornado imagery. I also updated the naming of the root, so that it would be clear to the user what this dendogram is providing information on.
+
+
+
+## **Code and Graphic**
+
+First, I will set up my script by loading the necessary packages.  I also include an option to make R not convert my numeric values to scientific notation.
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages("collapsibleTree", repos="http://cran.us.r-project.org")
+library(collapsibleTree)
+library(dplyr)
+library(readr)
+library(scales)
+library(tidyr)
+
+#force R not to convert numeric values to scientific notation
+options(scipen = 999)
+```
+
+Next I will load the csv files, one for each of the ten years. I select only the columns that I will need to prepare my figure, and filter to only include rows about tornadoes, as I am not interested in the other weather events for this visualization.  I then combine all 10 years into one data frame.
+```{r}
+year_2012 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2012_c20220107.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2013 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2013_c20220124.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2014 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2014_c20211217.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2015 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2015_c20211217.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2016 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2016_c20211217.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2017 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2017_c20220124.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2018 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2018_c20220124.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2019 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2019_c20220124.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2020 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2020_c20220124.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+year_2021 <- read.csv("C:/Users/lhern/OneDrive/Desktop/STAA 566/StormData/StormEvents_details-ftp_v1.0_d2021_c20220124.csv.gz") %>%
+  select(YEAR, EVENT_TYPE, EVENT_ID, STATE, CZ_NAME, BEGIN_DATE_TIME, CZ_TIMEZONE, INJURIES_DIRECT, INJURIES_INDIRECT, DEATHS_DIRECT, DEATHS_INDIRECT, DAMAGE_PROPERTY, DAMAGE_CROPS) %>%
+  filter(EVENT_TYPE == "Tornado")
+
+all_years <- rbind(year_2012, year_2013, year_2014, year_2015, year_2016, year_2017, year_2018, year_2019, year_2020, year_2021)
+```
+
+The csv files obtained from the NOAA have the property damage and crop damage variables as character fields, with amounts shown with K for thousands, M for millions, and B for billions; in order to identify the maximum values, these need to be converted to numeric data types.  Here I convert these two fields to numeric by identifying the presence of a K, M, or B, and multiplying the numeric portion of the string accordingly to get the right value.  Then, I replace any NA values within the full data frame with a 0.
+
+```{r}
+all_years$DAMAGE_PROPERTY <- dplyr::case_when(
+  stringr::str_detect(all_years$DAMAGE_PROPERTY, 'K') ~ readr::parse_number(all_years$DAMAGE_PROPERTY) * 1000,
+  stringr::str_detect(all_years$DAMAGE_PROPERTY, 'M') ~ readr::parse_number(all_years$DAMAGE_PROPERTY) * 1000000,
+  stringr::str_detect(all_years$DAMAGE_PROPERTY, 'B') ~ readr::parse_number(all_years$DAMAGE_PROPERTY) * 1000000000,
+  TRUE ~ parse_number(all_years$DAMAGE_PROPERTY)
+)
+
+all_years$DAMAGE_CROPS <- dplyr::case_when(
+  stringr::str_detect(all_years$DAMAGE_CROPS, 'K') ~ readr::parse_number(all_years$DAMAGE_CROPS) * 1000,
+  stringr::str_detect(all_years$DAMAGE_CROPS, 'M') ~ readr::parse_number(all_years$DAMAGE_CROPS) * 1000000,
+  stringr::str_detect(all_years$DAMAGE_CROPS, 'B') ~ readr::parse_number(all_years$DAMAGE_CROPS) * 1000000000,
+  TRUE ~ parse_number(all_years$DAMAGE_CROPS)
+)
+
+all_years[is.na(all_years)] = 0
+```
+
+The NOAA breaks down the death and injury information for each tornado by direct and indirect (defined in the NOAA's NWS Documentation); for the purposes of this visualization, I opted to combine direct and indirect deaths/injuries together, to have a total deaths and total injuries field instead.  Here I pull out the two columns for direct and indirect deaths, sum the columns for each row, and add the new total deaths column back to the all_years data frame; I do the same thing for the injuries information.
+```{r}
+#combine direct and indirect deaths to have one value for total number of deaths
+x <- all_years %>%
+  select(DEATHS_DIRECT, DEATHS_INDIRECT)
+combined_deaths <- mutate(x, TOTAL_DEATHS = rowSums(x)) %>%
+  select(TOTAL_DEATHS)
+all_years <- cbind(all_years, combined_deaths)
+
+#combine direct and indirect injuries to have one value for total number of injuries
+y <- all_years %>%
+  select(INJURIES_DIRECT, INJURIES_INDIRECT)
+combined_injuries <- mutate(y, TOTAL_INJURIES = rowSums(y)) %>%
+  select(TOTAL_INJURIES)
+all_years <- cbind(all_years, combined_injuries)
+```
+
+Now I am ready to identify the "worst" tornadoes of each year, by filtering the data down to the tornadoes that caused the greatest amount of crop damage, property damage, fatalities, and injuries. Because I know I want one of my branches in the collapsible tree to identify the loss type, I add a column to identify which loss type each of these belongs to; this will allow for the user to select which loss type they want to focus on - for example, when identifying the "worst" tornado of the year 2021, the user will choose what parameter they are gauging the "worst" characterization on, e.g. number of deaths, most crop damage, etc.  Here I extract the rows for the maximum values of each of the loss types (allowing for ties) for each year, add a column named loss_type to identify which loss type that row is the maximum value for, and finally combine these smaller subsetted data sets together into the data set that will be used for the visualization - named "Tornadoes".
+```{r}
+crops <- all_years %>%
+  group_by(YEAR) %>%
+  filter(DAMAGE_CROPS == max(DAMAGE_CROPS)) %>%
+  mutate(loss_type = "Highest Crop Damage")
+
+property <- all_years %>%
+  group_by(YEAR) %>%
+  filter(DAMAGE_PROPERTY == max(DAMAGE_PROPERTY)) %>%
+  mutate(loss_type = "Highest Property Damage")
+
+deaths <- all_years %>%
+  group_by(YEAR) %>%
+  filter(TOTAL_DEATHS == max(TOTAL_DEATHS)) %>%
+  mutate(loss_type = "Highest Number of Fatalities (Direct and Indirect)")
+
+injuries <- all_years %>%
+  group_by(YEAR) %>%
+  filter(TOTAL_INJURIES == max(TOTAL_INJURIES)) %>%
+  mutate(loss_type = "Highest Number of Injuries (Direct and Indirect)")
+
+Tornadoes <- rbind(crops, property, deaths, injuries)
+```
+
+To make the final product more understandable for the user, I convert the property damage and crop damage values to be formatted as currency - as I no longer need to do any calculations on these values, it is now fine for them to go back to being character data types.
+```{r}
+Tornadoes$DAMAGE_CROPS <- dollar(Tornadoes$DAMAGE_CROPS)
+Tornadoes$DAMAGE_PROPERTY <- dollar(Tornadoes$DAMAGE_PROPERTY)
+```
+
+In order for my leaves to display complete location and beginning date/time information, I combine the county/zone name ("CZ_NAME") and state fields together as a new variable called Location, and I combine the date and time field with the time zone as a new variable called Beginning_Date_and_Time.  I also add the text "Tornado ID #" to the beginning of the Event IDs, just to make it a little clearer for the user what these are.  I then remove columns I no longer need, for simplicity.
+```{r}
+Tornadoes$Location <- paste(Tornadoes$CZ_NAME, Tornadoes$STATE, sep=", ")
+Tornadoes$Beginning_Date_and_Time <- paste(Tornadoes$BEGIN_DATE_TIME, Tornadoes$CZ_TIMEZONE, sep=" ")
+Tornadoes$EVENT_ID <- paste("Tornado ID #", Tornadoes$EVENT_ID, sep="")
+
+Tornadoes <- Tornadoes %>%
+  select(YEAR, loss_type, EVENT_ID, Location, Beginning_Date_and_Time, TOTAL_DEATHS, TOTAL_INJURIES, DAMAGE_PROPERTY, DAMAGE_CROPS)
+```
+
+Next I convert the TOTAL_DEATHS and TOTAL_INJURIES fields to be character types, so that the next step (where I pivot my data to be longer) will work correctly; as I no longer need to do any calculations with these fields, it is now fine to have them be character data types.  I then change the names of the columns in my data frame to be more user-friendly, as some of these will be seen in the final visualization.
+```{r}
+Tornadoes$TOTAL_DEATHS <- as.character(Tornadoes$TOTAL_DEATHS)
+Tornadoes$TOTAL_INJURIES <- as.character(Tornadoes$TOTAL_INJURIES)
+
+colnames(Tornadoes) <- c("Year", "Loss Type", "Event ID", "Location", "Beginning Date and Time", "Number of Deaths (Direct and Indirect)", "Number of Injuries (Direct and Indirect)", "Property Damage", "Crop Damage")
+```
+
+Now I use Pivot Longer to add additional rows (and fewer columns), as the values in 6 of the columns are going to be my final leaves in the visualization and should therefore have one "parent" value that is the branch that connects them.
+```{r}
+Tornadoes <- Tornadoes %>%
+  pivot_longer(
+    cols = c("Location", "Beginning Date and Time", "Number of Deaths (Direct and Indirect)", "Number of Injuries (Direct and Indirect)", "Property Damage", "Crop Damage"),
+    names_to = "Details",
+    names_sep = NULL,
+    values_to = "Information"
+  )
+```
+
+
+Finally, I am ready to create the visualization - a collapsible tree, or dendogram.  In order to have different colors for each of the levels of the tree, I create separate 1-column matrices to capture the color I want to assign to each of the levels, then combine those into one vector called node_colors, which is the argument for the "fill" option.
+```{r}
+title_color <- "saddlebrown"
+year_color <- as.matrix(rep("sandybrown", times=10))
+loss_type_color <- as.matrix(rep("darkkhaki", times = 40))
+event_id_color <- as.matrix(rep("darkolivegreen", times = 45))
+details_color <- as.matrix(rep("darkseagreen", times = 270))
+information_color <- as.matrix(rep("white", times = 270))
+node_colors <- rbind(title_color, year_color, loss_type_color, event_id_color, details_color, information_color)
+
+collapsibleTree(
+  Tornadoes,
+  hierarchy = c("Year", "Loss Type", "Event ID", "Details", "Information"),
+  root = "The Worst Tornadoes of Each Year",
+  fill = node_colors,
+  fillByLevel = TRUE,
+  width = 1500,
+  height = 900,
+  fontSize = 16,
+  zoomable = TRUE
+)
+```
+
