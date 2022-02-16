@@ -182,10 +182,10 @@ collapsibleTree(
   root = "The Worst Tornadoes of Each Year",
   fill = node_colors,
   fillByLevel = TRUE,
-  width = 1500,
-  height = 900,
-  fontSize = 16,
-  zoomable = TRUE
+  width = 1700,
+  height = 1200,
+  fontSize = 18,
+  zoomable = FALSE
 )
 ```
 
